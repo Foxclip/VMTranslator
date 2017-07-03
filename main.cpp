@@ -153,7 +153,7 @@ void writeAddSubAndOr(std::string command) {
     wAsm("M=D");
 }
 
-void writeNeg(std::string outputFilename) {
+void writeNeg() {
     wAsm("@SP");
     wAsm("A=M");
     wAsm("A=A-1");
@@ -200,17 +200,37 @@ void writeComp(std::string command, int index) {
     }
 }
 
-void writeNot(std::string outputFilename) {
+void writeNot() {
     wAsm("@SP");
     wAsm("A=M");
     wAsm("A=A-1");
     wAsm("M=!M");
 }
 
+void writeLabel(std::string labelName) {
+    wAsm("(" + labelName + ")");
+}
+
+void writeIfGoto(std::string label) {
+    wAsm("@SP");
+    wAsm("MD=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@" + label);
+    wAsm("D;JNE");
+}
+
+void writeGoto(std::string label) {
+    wAsm("@" + label);
+    wAsm("0;JMP");
+}
+
 void writeCommand(std::string command, std::string segment, std::string address) {
     debugPrintLine("Writing command: " + command + " " + segment + " " + address);
     if(command == "push" || command == "pop") {
         wAsm("//" + command + " " + segment + " " + address);
+    } else if(command == "label" || command == "if-goto" || command == "goto") {
+        wAsm("//" + command + " " + segment);
     } else {
         wAsm("//" + command);
     }
@@ -221,14 +241,23 @@ void writeCommand(std::string command, std::string segment, std::string address)
         writeAddSubAndOr(command);
     }
     if(command == "neg") {
-        writeNeg(outputFilename);
+        writeNeg();
     }
     if(command == "eq" || command == "gt" || command == "lt") {
         writeComp(command, compIndex);
         compIndex++;
     }
     if(command == "not") {
-        writeNot(outputFilename);
+        writeNot();
+    }
+    if(command == "label") {
+        writeLabel(segment);
+    }
+    if(command == "if-goto") {
+        writeIfGoto(segment);
+    }
+    if(command == "goto") {
+        writeGoto(segment);
     }
 }
 
@@ -266,7 +295,7 @@ void translate(std::string inputFilename) {
         if(c == '\n') {
             if(currentState == COMMENT) {
                 currentState = SPACE;
-            } else if(currentState == INSTR) {
+            } else if(currentState == INSTR || currentState == SEGMENT) {
                 writeCommand(instrBuffer, segmentBuffer, addressBuffer);
                 currentState = SPACE;
             }
@@ -276,8 +305,10 @@ void translate(std::string inputFilename) {
             if(currentState == SLASH) {
                 debugPrintLine("Comment found");
                 currentState = COMMENT;
-            }
-            else if(currentState == SPACE) {
+            } else if(currentState == SPACE) {
+                currentState = SLASH;
+            } else if(currentState == ADDR) {
+                writeCommand(instrBuffer, segmentBuffer, addressBuffer);
                 currentState = SLASH;
             }
         }
@@ -292,7 +323,7 @@ void translate(std::string inputFilename) {
                 currentState = SPACE;
             }
         }
-        if(std::isalpha(c)) {
+        if(std::isalpha(c) || c == '-' || c == '_') {
             debugPrintLine("Letter symbol found");
             if(currentState == INSTR) {
                 instrBuffer += c;

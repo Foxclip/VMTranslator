@@ -91,7 +91,7 @@ void writePop(std::string segment, std::string address) {
     wAsm("M=M-1");
 }
 
-void writePushPop(std::string instruction, std::string segment, std::string address) {
+void writePushPop(std::string command, std::string segment, std::string address) {
     if(segment == "constant") {
         wAsm("@" + address);
     }
@@ -110,7 +110,7 @@ void writePushPop(std::string instruction, std::string segment, std::string addr
     if(segment == "temp") {
         wAsm("@5");
     }
-    if(instruction == "push") {
+    if(command == "push") {
         if(segment == "pointer") {
             if(address == "0") {
                 wAsm("@THIS");
@@ -123,7 +123,7 @@ void writePushPop(std::string instruction, std::string segment, std::string addr
             wAsm("@" + outputFilename.substr(0, outputFilename.rfind(".")) + "." + address);
         }
     }
-    if(instruction == "push") {
+    if(command == "push") {
         writePush(segment, address);
     } else {
         writePop(segment, address);
@@ -207,27 +207,27 @@ void writeNot(std::string outputFilename) {
     wAsm("M=!M");
 }
 
-void writeCommand(std::string insruction, std::string segment, std::string address) {
-    debugPrintLine("Writing command: " + insruction + " " + segment + " " + address);
-    if(insruction == "push" || insruction == "pop") {
-        wAsm("//" + insruction + " " + segment + " " + address);
+void writeCommand(std::string command, std::string segment, std::string address) {
+    debugPrintLine("Writing command: " + command + " " + segment + " " + address);
+    if(command == "push" || command == "pop") {
+        wAsm("//" + command + " " + segment + " " + address);
     } else {
-        wAsm("//" + insruction);
+        wAsm("//" + command);
     }
-    if(insruction == "push" || insruction == "pop") {
-        writePushPop(insruction, segment, address);
+    if(command == "push" || command == "pop") {
+        writePushPop(command, segment, address);
     }
-    if(insruction == "add" || insruction == "sub" || insruction == "and" || insruction == "or") {
-        writeAddSubAndOr(insruction);
+    if(command == "add" || command == "sub" || command == "and" || command == "or") {
+        writeAddSubAndOr(command);
     }
-    if(insruction == "neg") {
+    if(command == "neg") {
         writeNeg(outputFilename);
     }
-    if(insruction == "eq" || insruction == "gt" || insruction == "lt") {
-        writeComp(insruction, compIndex);
+    if(command == "eq" || command == "gt" || command == "lt") {
+        writeComp(command, compIndex);
         compIndex++;
     }
-    if(insruction == "not") {
+    if(command == "not") {
         writeNot(outputFilename);
     }
 }

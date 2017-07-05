@@ -13,7 +13,7 @@ enum State {
 };
 
 const int local_pointer = 1;
-int compIndex = 0;
+int lineNumber = 0;
 std::string outputFilename;
 
 void debugPrint(std::string str) {
@@ -225,9 +225,69 @@ void writeGoto(std::string label) {
     wAsm("0;JMP");
 }
 
+void writeFunction(std::string name, int localVarCount) {
+    writeLabel(name);
+    for(int i = 0; i < localVarCount; i++) {
+        writePushPop("push", "constant", "0");
+    }
+}
+
+void writeReturn() {
+
+    writePushPop("pop", "argument", "0");
+
+    wAsm("@LCL");
+    wAsm("D=M");
+    wAsm("@R14");
+    wAsm("M=D");
+
+    wAsm("@ARG");
+    wAsm("D=M+1");
+    wAsm("@SP");
+    wAsm("M=D");
+
+    wAsm("@R14");
+    wAsm("M=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@THAT");
+    wAsm("M=D");
+
+    wAsm("@R14");
+    wAsm("M=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@THIS");
+    wAsm("M=D");
+
+    wAsm("@R14");
+    wAsm("M=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@ARG");
+    wAsm("M=D");
+
+    wAsm("@R14");
+    wAsm("M=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@LCL");
+    wAsm("M=D");
+
+    wAsm("@R14");
+    wAsm("M=M-1");
+    wAsm("A=M");
+    wAsm("D=M");
+    wAsm("@R15");
+    wAsm("M=D");
+
+    //wAsm("0;JMP");
+
+}
+
 void writeCommand(std::string command, std::string segment, std::string address) {
     debugPrintLine("Writing command: " + command + " " + segment + " " + address);
-    if(command == "push" || command == "pop") {
+    if(command == "push" || command == "pop" || command == "function") {
         wAsm("//" + command + " " + segment + " " + address);
     } else if(command == "label" || command == "if-goto" || command == "goto") {
         wAsm("//" + command + " " + segment);
@@ -244,8 +304,7 @@ void writeCommand(std::string command, std::string segment, std::string address)
         writeNeg();
     }
     if(command == "eq" || command == "gt" || command == "lt") {
-        writeComp(command, compIndex);
-        compIndex++;
+        writeComp(command, lineNumber);
     }
     if(command == "not") {
         writeNot();
@@ -259,6 +318,13 @@ void writeCommand(std::string command, std::string segment, std::string address)
     if(command == "goto") {
         writeGoto(segment);
     }
+    if(command == "function") {
+        writeFunction(segment, std::stoi(address));
+    }
+    if(command == "return") {
+        writeReturn();
+    }
+    lineNumber++;
 }
 
 void translate(std::string inputFilename) {
@@ -323,7 +389,7 @@ void translate(std::string inputFilename) {
                 currentState = SPACE;
             }
         }
-        if(std::isalpha(c) || c == '-' || c == '_') {
+        if(std::isalpha(c) || c == '-' || c == '_' || c == '.') {
             debugPrintLine("Letter symbol found");
             if(currentState == INSTR) {
                 instrBuffer += c;

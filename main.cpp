@@ -351,6 +351,14 @@ void writeCommand(std::string command, std::string segment, std::string address)
     runningIndex++;
 }
 
+void writeBootstrap() {
+    wAsm("@256");
+    wAsm("D=A");
+    wAsm("@SP");
+    wAsm("M=D");
+    writeCall("Sys.init", 0);
+}
+
 void translate(std::string inputFilename) {
     std::cout << "Translating " + inputFilename << std::endl;
     std::fstream inputStream(inputFilename);
@@ -443,10 +451,6 @@ void setOutputFile(std::string name) {
     std::cout << "Output file: " + outputFilename << std::endl;
     std::ofstream clearFileContents(outputFilename, std::ios::trunc);
     clearFileContents.close();
-    wAsm("@256");
-    wAsm("D=A");
-    wAsm("@SP");
-    wAsm("M=D");
 }
 
 bool endsWith(std::string const &fullString, std::string const &ending) {
@@ -466,15 +470,11 @@ int main(int argc, char *argv[]) {
         std::string dirName = inputName.substr(0, inputName.size() - 1);
         if((dir = opendir(dirName.c_str())) != NULL) {
             setOutputFile(inputName + dirName);
-            std::vector<std::string> fileList;
-            fileList.push_back("Sys.vm");
+            writeBootstrap();
             while((ent = readdir(dir)) != NULL) {
-                if(ent->d_type == DT_REG && endsWith(ent->d_name, ".vm") && std::string(ent->d_name) != "Sys.vm") {
-                    fileList.push_back(std::string(ent->d_name));
+                if(ent->d_type == DT_REG && endsWith(ent->d_name, ".vm")) {
+                    translate(inputName + ent->d_name);
                 }
-            }
-            for(std::string fileName : fileList) {
-                translate(inputName + fileName);
             }
             closedir(dir);
         } else {
@@ -482,6 +482,7 @@ int main(int argc, char *argv[]) {
         }
     } else {
         setOutputFile(inputName);
+        writeBootstrap();
         translate(argv[1]);
     }
 

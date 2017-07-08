@@ -18,6 +18,7 @@ const int local_pointer = 1;
 int runningIndex = 0;
 int lineNumber = 0;
 std::string outputFilename;
+std::string currentInputFilename;
 
 void debugPrint(std::string str) {
     //std::cout << str;
@@ -71,7 +72,7 @@ void writePop(std::string segment, std::string address) {
             }
         }
         if(segment == "static") {
-            wAsm("@" + outputFilename.substr(0, outputFilename.rfind(".")) + "." + address);
+            wAsm("@" + currentInputFilename + "." + address);
         }
         wAsm("M=D");
         return;
@@ -126,7 +127,7 @@ void writePushPop(std::string command, std::string segment, std::string address)
             }
         }
         if(segment == "static") {
-            wAsm("@" + outputFilename.substr(0, outputFilename.rfind(".")) + "." + address);
+            wAsm("@" + currentInputFilename + "." + address);
         }
     }
     if(command == "push") {
@@ -417,7 +418,7 @@ void translate(std::string inputFilename) {
                 currentState = SPACE;
             }
         }
-        if(std::isalpha(c) || c == '-' || c == '_' || c == '.') {
+        if(std::isalnum(c) || c == '-' || c == '_' || c == '.') {
             debugPrintLine("Letter symbol found");
             if(currentState == INSTR) {
                 instrBuffer += c;
@@ -473,6 +474,8 @@ int main(int argc, char *argv[]) {
             writeBootstrap();
             while((ent = readdir(dir)) != NULL) {
                 if(ent->d_type == DT_REG && endsWith(ent->d_name, ".vm")) {
+                    currentInputFilename = std::string(ent->d_name);
+                    currentInputFilename = currentInputFilename.substr(0, currentInputFilename.rfind("."));
                     translate(inputName + ent->d_name);
                 }
             }
@@ -483,7 +486,8 @@ int main(int argc, char *argv[]) {
     } else {
         setOutputFile(inputName);
         writeBootstrap();
-        translate(argv[1]);
+        currentInputFilename = inputName;
+        translate(inputName);
     }
 
     return 0;
